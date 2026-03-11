@@ -18,7 +18,9 @@ func (app *app) errorResponse(w http.ResponseWriter, r *http.Request, status int
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
-
+func (app *app) badRequest(w http.ResponseWriter, r *http.Request, err error) {
+	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+}
 func (app *app) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logError(r, err)
 	message := "the server encountered a problem and could not process your request"
