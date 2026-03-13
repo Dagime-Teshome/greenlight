@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Dagime-Teshome/greenlight/internal/data"
+	"github.com/Dagime-Teshome/greenlight/internal/validator"
 )
 
 func (app *app) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +21,22 @@ func (app *app) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequest(w, r, err)
+		return
+	}
+
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	v := validator.New()
+
+	data.ValidateMovie(v, movie)
+
+	if !v.Valid() {
+		app.validationError(w, r, v.Errors)
 		return
 	}
 
