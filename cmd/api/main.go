@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Dagime-Teshome/greenlight/internal/data"
 	_ "github.com/lib/pq"
 )
 
@@ -29,6 +30,7 @@ type config struct {
 type app struct {
 	logger *log.Logger
 	config config
+	models data.Models
 }
 
 func main() {
@@ -53,6 +55,7 @@ func main() {
 	app := &app{
 		logger: logger,
 		config: cfg,
+		models: data.NewModel(db),
 	}
 
 	server := &http.Server{
@@ -78,9 +81,6 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 	db.SetConnMaxIdleTime(duration)
-	if err != nil {
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err = db.PingContext(ctx)
