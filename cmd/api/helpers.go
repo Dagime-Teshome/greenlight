@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
+	"github.com/Dagime-Teshome/greenlight/internal/validator"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -74,4 +77,42 @@ func (app *app) readJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 		return errors.New("body must only contain a single JSON value")
 	}
 	return nil
+}
+
+func (app *app) readString(qs url.Values, key, defaultValue string) string {
+
+	str := qs.Get(key)
+
+	if str == "" {
+		return defaultValue
+	}
+
+	return str
+}
+
+func (app *app) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	intVal := qs.Get(key)
+
+	if intVal == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(intVal)
+
+	if err != nil {
+		v.AddError(key, "must be integer")
+		return defaultValue
+	}
+
+	return i
+}
+
+func (app *app) readCsv(qs url.Values, key string, defaultValue []string) []string {
+	csv := qs.Get(key)
+
+	if csv == "" {
+		return defaultValue
+	}
+
+	return strings.Split(csv, ",")
 }
