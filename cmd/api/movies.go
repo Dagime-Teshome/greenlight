@@ -187,5 +187,16 @@ func (app *app) listMovieHandler(w http.ResponseWriter, r *http.Request) {
 		app.validationError(w, r, v.Errors)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", input)
+
+	movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJson(w, http.StatusOK, Envelope{"movies": movies}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
