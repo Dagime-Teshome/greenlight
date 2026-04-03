@@ -31,6 +31,11 @@ func (app *app) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 
 }
 
+func (app *app) tooManyRequest(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
+}
+
 func (app *app) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	message := "the resource requested couldn't be found"
 	app.errorResponse(w, r, http.StatusNotFound, message)
