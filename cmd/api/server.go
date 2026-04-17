@@ -32,20 +32,33 @@ func serve(app *app) error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		s := <-quit
 
-		app.logger.PrintInfo("shutting down server", map[string]string{
+		app.logger.PrintInfo("caught signal", map[string]string{
 			"signal": s.String(),
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
-		shutdownError <- server.Shutdown(ctx)
+		err := server.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+		app.logger.PrintInfo("completing background tasks", map[string]string{
+			"addr": server.Addr,
+		})
+
+		app.wg.Wait()
+		shutdownError <- nil
 
 	}()
 	properties := map[string]string{"addr": server.Addr, "env": app.config.env}
 	app.logger.PrintInfo("starting server", properties)
 	err := server.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	err = <-shutdownError
+	if err != nil {
 		return err
 	}
 	app.logger.PrintInfo("stopped server", map[string]string{
