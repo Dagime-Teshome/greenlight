@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/Dagime-Teshome/greenlight/internal/data"
 	"github.com/Dagime-Teshome/greenlight/internal/validator"
@@ -53,8 +54,19 @@ func (app *app) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	app.background(func() {
-		err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		data := map[string]any{
+			"activationToken": token.Plaintext,
+			"userID":          user.ID,
+		}
+		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			app.logger.PrintError(err, nil)
 		}
@@ -76,5 +88,64 @@ func (app *app) listUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 func (app *app) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (app *app) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+
+	//"token": "{{.activationToken}}"
+
+	var input struct {
+		Token string `json:"token"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	validator := validator.New()
+	data.ValidateTokenPlaintext(validator, input.Token)
+	if !validator.Valid() {
+		app.validationError(w, r, validator.Errors)
+		return
+	}
+
+	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.Token)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			validator.AddError("token", "invalid or expired activation token")
+			app.validationError(w, r, validator.Errors)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	user.Activated = true
+
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.models.Tokens.DeleteAllForUser(data.ScopeActivation, user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJson(w, http.StatusOK, Envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 
 }
