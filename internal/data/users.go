@@ -14,6 +14,7 @@ import (
 var (
 	ErrDuplicateEmail = errors.New("duplicate email")
 )
+var AnonymousUser = &User{}
 
 type User struct {
 	ID        int64     `json:"id"`
@@ -50,6 +51,9 @@ type UserModel struct {
 	DB *sql.DB
 }
 
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
+}
 func (u *UserModel) Insert(user *User) error {
 	query := `INSERT INTO users (name , email , password_hash,activated)
 				VALUES ($1,$2,$3,$4)
