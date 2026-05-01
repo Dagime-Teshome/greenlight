@@ -13,12 +13,12 @@ func (app *app) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 	// movies end points
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.listMovieHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/movies/", app.createMovieHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMoveHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requireActivatedUser(app.listMovieHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requireActivatedUser(app.createMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requireActivatedUser(app.showMovieHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/movies/", app.requireActivatedUser(app.createMovieHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requireActivatedUser(app.updateMoveHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requireActivatedUser(app.deleteMovieHandler))
 	// users end points
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
