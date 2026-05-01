@@ -125,3 +125,42 @@ func (app *app) authenticate(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// func (app *app) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		user := app.contextGetUser(r)
+
+// 		if user.IsAnonymous() {
+// 			app.unauthorizedUserResponse(w, r)
+// 			return
+// 		}
+// 		if !user.Activated {
+// 			app.forbiddenResponse(w, r)
+// 			return
+// 		}
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
+
+func (app *app) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if user.IsAnonymous() {
+			app.forbiddenResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *app) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if !user.Activated {
+			app.unauthorizedUserResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireAuthenticatedUser(fn)
+}
